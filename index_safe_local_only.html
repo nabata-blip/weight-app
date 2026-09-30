@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>11/25・50kg</title>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--ink:#111;--muted:#6b6b70;--line:#e7e7eb;--accent:#111;--ok:#0a7a3d;--warn:#a15c00}
+*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:var(--bg);color:var(--ink)}
+.wrap{max-width:760px;margin:auto;padding:18px}.card{background:var(--card);border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 1px 8px #0001}.hero{font-size:34px;font-weight:800;letter-spacing:-.5px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.pill{display:inline-block;padding:7px 10px;border-radius:999px;background:#f0f0f3;font-weight:700;font-size:13px}.good{color:var(--ok);font-weight:800}.warn{color:var(--warn);font-weight:800}
+input,button,select{font:inherit;padding:12px;border-radius:12px;border:1px solid #d9d9df;box-sizing:border-box;width:100%;background:#fff}button{background:var(--accent);color:#fff;font-weight:800;border:0}.ghost{background:#f0f0f3;color:#111}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.small{font-size:13px}.tiny{font-size:12px}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:14px}canvas,svg{width:100%;height:250px;display:block}.switch{display:flex;gap:8px}.switch button{background:#eee;color:#111}.switch button.active{background:#111;color:#fff}.kpi{padding:12px;border:1px solid var(--line);border-radius:14px}.kpi b{display:block;font-size:22px;margin-top:3px}.progress{height:10px;background:#eee;border-radius:999px;overflow:hidden}.progress>div{height:100%;background:#111;width:0%}@media(max-width:560px){.grid,.grid3{grid-template-columns:1fr}.hero{font-size:30px}}
+
+.goal-banner{display:flex;align-items:baseline;gap:10px;margin:8px 0 14px;padding:10px 14px;border-radius:14px;background:#fff7f7;border:1px solid #f0dddd}.goal-banner span{font-size:11px;letter-spacing:.12em;color:#8a6666}.goal-banner strong{font-size:18px}.goal-banner b{font-size:24px}
+</style>
+</head>
+<body><div class="wrap">
+<h1>11/25・50kg</h1>
+  <div class="goal-banner"><span>GOAL</span><strong>11/25</strong><b>50.0 kg</b></div>
+
+<div class="card">
+  <div class="grid3">
+    <div class="kpi"><span class="muted small">7日平均</span><b id="avg">—</b></div>
+    <div class="kpi"><span class="muted small">今日の目標線（11/25→50kg）</span><b id="targetWeight">—</b></div>
+    <div class="kpi"><span class="muted small">目標線との差</span><b id="targetDiff">—</b></div>
+  </div>
+  <p id="statusText" class="small muted"></p>
+</div>
+
+<div class="card">
+  <div class="row" style="align-items:flex-start">
+    <div><h2 style="margin-top:0">体重グラフ</h2><div class="small muted">実測・7日平均・11/25＝50kgの目標線</div></div>
+    <div class="pill" id="modePill">通常モード</div>
+  </div>
+  <svg id="chart" viewBox="0 0 720 250" role="img" aria-label="体重グラフ"></svg>
+</div>
+
+<div class="card">
+  <div class="row" style="align-items:flex-start">
+    <div><h2 style="margin-top:0">てんグラフ</h2><div class="small muted">日ごとの合計点と7日平均</div></div>
+    <div class="pill">11点満点</div>
+  </div>
+  <svg id="scoreChart" viewBox="0 0 720 250" role="img" aria-label="てんグラフ"></svg>
+</div>
+
+<div class="card">
+  <h2>今日の記録</h2>
+  <div class="switch" style="margin-bottom:12px">
+    <button id="normalBtn" class="active" onclick="setMode('normal')">通常モード</button>
+    <button id="travelBtn" onclick="setMode('travel')">🚄 出張モード</button>
+  </div>
+  <div class="grid">
+    <input id="weight" type="number" step=".1" placeholder="体重 kg">
+    <input id="fat" type="number" step=".1" placeholder="体脂肪 %">
+  </div>
+  <p><input id="score" inputmode="numeric" maxlength="4" placeholder="てん 例：2521"></p>
+  <div class="grid">
+    <select id="scoreDay">
+      <option value="today">てん＝今日分</option>
+      <option value="yesterday">てん＝昨日分</option>
+    </select>
+    <button onclick="save()">記録する</button>
+  </div>
+  <p class="small muted">てん＝体重(0/2)・食事(0–5)・運動(0–3)・Bonus(0/1)</p>
+  <p id="modeHelp" class="small"></p>
+</div>
+
+<div class="card">
+  <h2>今日あと何点？</h2>
+  <div class="hero" id="remaining">—</div>
+  <div class="progress"><div id="remainingBar"></div></div>
+  <p id="remainingHint" class="small muted"></p>
+</div>
+
+<div class="card">
+  <h2>3日チャレンジ</h2>
+  <div class="hero" id="three">0 / 21</div>
+  <div class="muted">21 合格 ／ 24 かなり良い ／ 27 上出来</div>
+</div>
+
+<div class="card"><h2>履歴</h2><div class="hint">記録データはこの端末のブラウザ内にだけ保存されます。GitHub Pages側には個人記録を保存しません。</div><table><thead><tr><th>日付</th><th>体重</th><th>てん</th><th>合計</th><th>モード</th></tr></thead><tbody id="rows"></tbody></table></div>
+
+<div class="card">
+  <h2>データのバックアップ</h2>
+  <p class="small muted">記録データをJSONファイルとして保存できます。機種変更やブラウザのデータ消去に備えて、ときどき書き出しておくのがおすすめです。</p>
+  <div class="grid">
+    <button onclick="exportData()">データを書き出す</button>
+    <button class="ghost" onclick="document.getElementById('restoreFile').click()">データを復元する</button>
+  </div>
+  <input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="restoreData(event)">
+  <p id="backupStatus" class="small muted"></p>
+</div>
+</div>
+
+<script>
+window.addEventListener('error',e=>{const st=document.getElementById('statusText');if(st)st.textContent='アプリエラー: '+e.message;});
+const $ = (id) => document.getElementById(id);
+const normalBtn = $('normalBtn');
+const travelBtn = $('travelBtn');
+const modePill = $('modePill');
+const modeHelp = $('modeHelp');
+const weight = $('weight');
+const fat = $('fat');
+const score = $('score');
+const scoreDay = $('scoreDay');
+const remaining = $('remaining');
+const remainingBar = $('remainingBar');
+const remainingHint = $('remainingHint');
+const avg = $('avg');
+const targetWeight = $('targetWeight');
+const targetDiff = $('targetDiff');
+const statusText = $('statusText');
+const three = $('three');
+const rows = $('rows');
+const backupStatus = $('backupStatus');
+const restoreFile = $('restoreFile');
+const SEED_DATA=[];
+const KEY='weightChallengeV2';
+const old=JSON.parse(localStorage.getItem('weightChallengeV1')||'[]');
+let data=JSON.parse(localStorage.getItem(KEY)||'null') || (old.length?old.map(x=>({...x,mode:'normal'})):[]);
+
+// 個人データはHTML本体に埋め込まない。端末内のlocalStorageのみを使用する。
+let mode='normal';
+
+function localISODate(d=new Date()){
+  const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)
+}
+function addDays(dateStr,n){const d=new Date(dateStr+'T00:00:00');d.setDate(d.getDate()+n);return localISODate(d)}
+function targetFor(d){
+  const start=new Date('2026-09-09T00:00:00'); const end=new Date('2026-11-25T00:00:00');
+  const total=(end-start)/86400000; let days=(d-start)/86400000; days=Math.max(0,Math.min(total,days));
+  return 58+(50-58)*(days/total);
+}
+function scoreTotal(s){
+  if(!/^\d{4}$/.test(s))return null; const a=[...s].map(Number);
+  if(![0,2].includes(a[0])||a[1]>5||a[2]>3||a[3]>1)return null; return a.reduce((x,y)=>x+y,0)
+}
+function setMode(m){
+  mode=m; normalBtn.classList.toggle('active',m==='normal'); travelBtn.classList.toggle('active',m==='travel');
+  modePill.textContent=m==='travel'?'🚄 出張モード':'通常モード';
+  modeHelp.innerHTML=m==='travel'
+    ? '<b>出張合格ライン：</b>食事3点＋運動1点＝4点。体重計がなければ測定0でもOK。減量より「0点にしない」を優先。'
+    : '<b>通常合格ライン：</b>まず7点。家の日は食事4〜5点＋運動1点以上を狙う。';
+  renderRemaining();
+}
+function save(){
+  const s=score.value.trim(), t=s?scoreTotal(s):null;
+  if(s&&t===null){alert('てんは 体重0/2・食事0〜5・運動0〜3・Bonus0/1 の4桁で入力してね');return}
+  const today=localISODate();
+  const scoreDate=scoreDay.value==='yesterday'?addDays(today,-1):today;
+  const w=+weight.value||null, f=+fat.value||null;
+  if(w||f){
+    const ex=data.find(x=>x.date===today)||{date:today}; ex.weight=w||ex.weight||null; ex.fat=f||ex.fat||null; ex.mode=ex.mode||mode;
+    data=data.filter(x=>x.date!==today); data.push(ex);
+  }
+  if(s){
+    const ex=data.find(x=>x.date===scoreDate)||{date:scoreDate}; ex.score=s; ex.total=t; ex.mode=mode;
+    data=data.filter(x=>x.date!==scoreDate); data.push(ex);
+  }
+  data.sort((a,b)=>a.date.localeCompare(b.date)); localStorage.setItem(KEY,JSON.stringify(data));
+  weight.value=fat.value=score.value=''; scoreDay.value='today'; render();
+}
+
+function exportData(){
+  const payload={
+    app:'50kg Challenge',
+    version:2,
+    exportedAt:new Date().toISOString(),
+    data:data
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`weight-challenge-backup-${localISODate()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  backupStatus.textContent=`${data.length}件の記録を書き出しました。`;
+}
+
+function restoreData(event){
+  const file=event.target.files?.[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const parsed=JSON.parse(reader.result);
+      const restored=Array.isArray(parsed)?parsed:parsed.data;
+      if(!Array.isArray(restored))throw new Error('invalid format');
+      const cleaned=restored.filter(x=>x&&typeof x.date==='string').map(x=>({
+        date:x.date,
+        weight:x.weight??null,
+        fat:x.fat??null,
+        score:x.score??null,
+        total:x.total??(x.score?scoreTotal(String(x.score)):null),
+        mode:x.mode==='travel'?'travel':'normal'
+      })).sort((a,b)=>a.date.localeCompare(b.date));
+      if(!cleaned.length && restored.length)throw new Error('no valid records');
+      const ok=confirm(`バックアップの${cleaned.length}件で現在のデータを置き換えます。よろしいですか？`);
+      if(!ok){backupStatus.textContent='復元をキャンセルしました。';event.target.value='';return;}
+      data=cleaned;
+      localStorage.setItem(KEY,JSON.stringify(data));
+      render();
+      backupStatus.textContent=`${cleaned.length}件の記録を復元しました。`;
+    }catch(e){
+      alert('このファイルは復元用データとして読み込めませんでした。');
+      backupStatus.textContent='復元に失敗しました。';
+    }finally{
+      event.target.value='';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function weighted7DayAvg(today){
+  const cutoff=addDays(localISODate(today),-6);
+  const ws=data.filter(x=>x.weight&&x.date>=cutoff&&x.date<=localISODate(today)).map(x=>x.weight);
+  return ws.length?{avg:ws.reduce((a,b)=>a+b,0)/ws.length,n:ws.length}:null;
+}
+function renderRemaining(){
+  const today=localISODate(); const rec=data.find(x=>x.date===today); const earned=rec?.total||0;
+  const goal=mode==='travel'?4:7; const left=Math.max(0,goal-earned);
+  remaining.textContent=left===0?'合格ライン達成！':`あと ${left} 点`;
+  remainingBar.style.width=Math.min(100,earned/goal*100)+'%';
+  remainingHint.textContent=mode==='travel'
+    ? `出張日は ${goal} 点で合格。現在 ${earned} 点。食事3＋運動1を基本形に。`
+    : `通常日は ${goal} 点をまず合格ラインに。現在 ${earned} 点。余裕がある日は8〜10点へ。`;
+}
+function weightAvgAt(dateStr){
+  const cutoff=addDays(dateStr,-6);
+  const ws=data.filter(x=>x.weight&&x.date>=cutoff&&x.date<=dateStr).map(x=>x.weight);
+  return ws.length?ws.reduce((a,b)=>a+b,0)/ws.length:null;
+}
+function svgEl(tag, attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e}
+function svgText(svg,x,y,txt,attrs={}){const e=svgEl('text',{x,y,...attrs});e.textContent=txt;svg.appendChild(e)}
+function drawChart(){
+  const svg=document.getElementById('chart'); if(!svg)return; svg.replaceChildren(); const W=720,H=250;
+  const pts=data.filter(x=>Number.isFinite(Number(x.weight))).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!pts.length){svgText(svg,20,40,'体重を記録するとグラフが表示されます',{'font-size':14,fill:'#777'});return}
+  const vals=pts.map(x=>Number(x.weight)), targets=pts.map(x=>targetFor(new Date(x.date+'T00:00:00'))), avgs=pts.map(p=>weightAvgAt(p.date));
+  const min=Math.floor((Math.min(...vals,...targets)-.5)*2)/2, max=Math.ceil((Math.max(...vals,...targets)+.5)*2)/2;
+  const L=42,R=12,T=22,B=36, x=i=>L+(W-L-R)*(pts.length===1?.5:i/(pts.length-1)), y=v=>T+(H-T-B)*(max-v)/(max-min||1);
+  for(let j=0;j<=4;j++){const v=min+(max-min)*j/4,yy=y(v);svg.appendChild(svgEl('line',{x1:L,y1:yy,x2:W-R,y2:yy,stroke:'#e6e6ea'}));svgText(svg,4,yy+4,v.toFixed(1),{'font-size':11,fill:'#777'})}
+  function path(arr,stroke,width,dash=''){let d='';arr.forEach((v,i)=>{if(v==null)return;d+=(d?' L ':'M ')+x(i)+' '+y(v)});svg.appendChild(svgEl('path',{d,fill:'none',stroke,'stroke-width':width,'stroke-dasharray':dash}))}
+  path(targets,'#999',2,'5 5');path(vals,'#bbb',1.5);path(avgs,'#111',3);
+  vals.forEach((v,i)=>svg.appendChild(svgEl('circle',{cx:x(i),cy:y(v),r:2.8,fill:'#111'})));
+  const idxs=[0,Math.floor((pts.length-1)/3),Math.floor((pts.length-1)*2/3),pts.length-1];[...new Set(idxs)].forEach(i=>{const last=i===pts.length-1; svgText(svg,last?x(i)-2:x(i)-14,H-10,pts[i].date.slice(5),{'font-size':11,fill:'#777','text-anchor':last?'end':'start'});});
+  svgText(svg,L,T-6,'— 7日平均',{'font-size':12,fill:'#111'});svgText(svg,L+95,T-6,'--- 11/25→50kg',{'font-size':12,fill:'#888'});
+}
+function scoreAvgAt(dateStr){
+  const cutoff=addDays(dateStr,-6); const vals=data.filter(x=>x.total!==null&&x.total!==undefined&&x.date>=cutoff&&x.date<=dateStr).map(x=>Number(x.total)).filter(Number.isFinite); return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+}
+function drawScoreChart(){
+  const svg=document.getElementById('scoreChart'); if(!svg)return; svg.replaceChildren(); const W=720,H=250;
+  const pts=data.filter(x=>x.total!==null&&x.total!==undefined&&Number.isFinite(Number(x.total))).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!pts.length){svgText(svg,20,40,'てんを記録するとグラフが表示されます',{'font-size':14,fill:'#777'});return}
+  const vals=pts.map(x=>Number(x.total)), avgs=pts.map(p=>scoreAvgAt(p.date)); const L=42,R=12,T=22,B=36,max=11,min=0,x=i=>L+(W-L-R)*(pts.length===1?.5:i/(pts.length-1)),y=v=>T+(H-T-B)*(max-v)/(max-min);
+  for(let j=0;j<=4;j++){const v=j*(11/4),yy=y(v);svg.appendChild(svgEl('line',{x1:L,y1:yy,x2:W-R,y2:yy,stroke:'#e6e6ea'}));svgText(svg,7,yy+4,v.toFixed(j===0?0:1),{'font-size':11,fill:'#777'})}
+  const bw=Math.max(2,Math.min(8,(W-L-R)/Math.max(pts.length,1)*.55));vals.forEach((v,i)=>svg.appendChild(svgEl('rect',{x:x(i)-bw/2,y:y(v),width:bw,height:y(0)-y(v),fill:'#c8c8ce'})));
+  let d='';avgs.forEach((v,i)=>{if(v==null)return;d+=(d?' L ':'M ')+x(i)+' '+y(v)});svg.appendChild(svgEl('path',{d,fill:'none',stroke:'#111','stroke-width':3}));
+  svg.appendChild(svgEl('line',{x1:L,y1:y(7),x2:W-R,y2:y(7),stroke:'#888','stroke-width':1.5,'stroke-dasharray':'5 5'}));
+  const idxs=[0,Math.floor((pts.length-1)/3),Math.floor((pts.length-1)*2/3),pts.length-1];[...new Set(idxs)].forEach(i=>{const last=i===pts.length-1; svgText(svg,last?x(i)-2:x(i)-14,H-10,pts[i].date.slice(5),{'font-size':11,fill:'#777','text-anchor':last?'end':'start'});});
+  svgText(svg,L,T-6,'— 7日平均',{'font-size':12,fill:'#111'});svgText(svg,L+95,T-6,'--- 7点ライン',{'font-size':12,fill:'#888'});
+}
+function render(){
+  const today=new Date(); const seven=weighted7DayAvg(today); const tg=targetFor(today);
+  avg.textContent=seven?seven.avg.toFixed(1)+' kg':'—'; targetWeight.textContent=tg.toFixed(1)+' kg';
+  if(seven){const diff=seven.avg-tg;targetDiff.textContent=(diff>=0?'+':'')+diff.toFixed(1)+' kg';targetDiff.className=diff<=0?'good':'warn';statusText.textContent=`直近7日（測定 ${seven.n}日）の平均。単日の増減ではなく、この差をメインで判定。`}
+  else{targetDiff.textContent='—';statusText.textContent='直近7日（測定2日）の平均。単日の増減ではなく、この差をメインで判定。'}
+  const last=data.filter(x=>x.total!==null&&x.total!==undefined).slice(-3), sum=last.reduce((a,x)=>a+x.total,0); three.textContent=sum+' / 21';
+  rows.innerHTML=data.slice().reverse().map(x=>`<tr><td>${x.date.slice(5)}</td><td>${x.weight??'—'}</td><td>${x.score??'—'}</td><td>${x.total??'—'}</td><td>${x.mode==='travel'?'出張':'通常'}</td></tr>`).join('');
+  drawChart(); drawScoreChart(); renderRemaining();
+}
+setMode('normal'); render();
+</script></body></html>
